@@ -4,11 +4,11 @@
 
 ## Thông tin học viên
 
-- Họ tên:
-- MSSV:
-- Email:
-- Link repo (fork):
-- Commit hash nộp (`git rev-parse HEAD`):
+- Họ tên: Đào Gia Bảo
+- MSSV: 2A202602793
+- Email: Chưa được cung cấp.
+- Link repo (fork): https://github.com/kevindao94work/K4-L2L3-DAY23-DaoGiaBao-2A202602793-SensorFusion
+- Commit hash nộp (`git rev-parse HEAD`): Xem hash cuối cùng cung cấp khi nộp LMS (được tạo sau commit báo cáo).
 
 ## Tóm tắt kết quả
 
@@ -57,7 +57,7 @@ Liệt kê phần bonus đã làm, file bằng chứng trong `student/bonus/` v�
 
 Ghi rõ, kể cả khi không dùng ("Không dùng AI"). Xem [RULES.md](../RULES.md) mục 2.
 
-- Công cụ đã dùng (ChatGPT, Copilot, Claude, …):
+- Công cụ đã dùng (ChatGPT, Copilot, Claude, …): OpenAI Codex; sử dụng hướng dẫn Markdown do người dùng cung cấp.
 - Dùng cho phần nào (hàm, câu hỏi, debug):
 - Cách bạn đã kiểm tra lại (pytest, chạy Waymo, đối chiếu công thức):
 
