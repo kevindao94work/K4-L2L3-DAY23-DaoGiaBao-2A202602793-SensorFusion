@@ -12,19 +12,28 @@
 
 ## Tóm tắt kết quả
 
-- `fusion_mode` (bắt buộc `compare`), `frames`, `segment`, `seed`: Cấu hình dự kiến `compare`, `[0,198]`, `training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord`, `0`. Chưa có lần chạy hoàn tất; đây không phải số liệu đánh giá.
-- `detection.precision`, `detection.recall`, `detection.tp/fp/fn`: Chưa đo; chưa có dataset.
-- `tracking.lidar.rmse`, `matches`, `sum_sq_err`, `ghost_track_frames`, `missed_gt_frames`, `mean_confirmed_tracks`: Chưa đo; `precision_track` và `coverage` cũng chưa xác định.
-- `tracking.fused.rmse`, `matches`, `sum_sq_err`, `ghost_track_frames`, `missed_gt_frames`, `mean_confirmed_tracks`: Chưa đo; `precision_track` và `coverage` cũng chưa xác định.
-- Giải thích khác biệt hai mode, đọc RMSE cùng số ghép và ghost/miss: Chưa có kết quả thật để so sánh RMSE, matches, ghost hoặc miss; chưa tính được fused-minus-LiDAR RMSE. Không suy ra chất lượng tracking từ kết quả unit test.
+- `fusion_mode` (bắt buộc `compare`), `frames`, `segment`, `seed`: `compare`, `[0, 198]`, `training_segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord`, `0` (số nguyên).
+- `detection.precision`, `detection.recall`, `detection.tp/fp/fn`: `0.9700934579439252`, `0.7004048582995951`, `519/16/222`.
+- `tracking.lidar.rmse`, `matches`, `sum_sq_err`, `ghost_track_frames`, `missed_gt_frames`, `mean_confirmed_tracks`: `0.1503226533088836` m, `502`, `11.343643849107053` m², `0`, `239`, `2.522613065326633`.
+- `tracking.fused.rmse`, `matches`, `sum_sq_err`, `ghost_track_frames`, `missed_gt_frames`, `mean_confirmed_tracks`: `0.13586674608851862` m, `502`, `9.266805891726358` m², `0`, `239`, `2.522613065326633`.
+- Giải thích khác biệt hai mode, đọc RMSE cùng số ghép và ghost/miss: `rmse_fused-rmse_lidar=-0.014455907220364994` m; fused giảm khoảng 1,45 cm trên tổng thể. Chênh lệch matches, ghost và miss đều bằng 0: cả hai mode có 502 cặp, không ghost và 239 missed GT frames. Precision tracking `502/(502+0)=1.0`, coverage `502/519=0.9672447013487476` cho cả hai. Camera tinh chỉnh vị trí mà không thay đổi quyết định tồn tại track. Tuy nhiên fused không tốt hơn ở mọi frame: tại frame 20, `sum_sq_err` LiDAR là `0.022419309420855498`, fused là `0.044574829164691805`; frame 100 tương ứng `0.06014117599334394` và `0.04875274503122809`. Vì vậy kết luận dựa trên tổng lỗi và số cặp của cả segment, không chọn frame thuận lợi.
 
-Tình trạng kiểm chứng: CP1–CP4 hoàn tất, tổng `128 passed`, không failed/xfailed; CP0 đã có fork public đúng tên, CLI và môi trường nhưng còn thiếu segment. CP5 bị chặn dữ liệu, CP6 chưa đạt điều kiện nộp. Không tạo bất kỳ metrics/log thay thế nào.
+| Chỉ tiêu | LiDAR | Fused | Yêu cầu | Đánh giá |
+|---|---:|---:|---:|---|
+| RMSE 3D (m) | 0.150322653 | 0.135866746 | ≤0.45 | Đạt cả hai |
+| precision_track | 1.0 | 1.0 | ≥0.75 | Đạt cả hai |
+| coverage | 0.967244701 | 0.967244701 | ≥0.70 | Đạt cả hai |
+| RMSE fused − LiDAR (m) | — | -0.014455907 | ≤0.05 | Đạt |
 
-Nguồn course Drive trả **Quota exceeded** cho segment mặc định. Tìm kiếm trong Downloads, Documents, Desktop, MEGA và /Volumes không thấy file có ID segment tương ứng, gồm tên có/không có tiền tố `training_`. Google Cloud CLI 588.0.0 đã cài và đăng nhập; `gcloud storage cp` từ `gs://waymo_open_dataset_v_1_4_3/individual_files/training/segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord` trả **HTTP 403**, thiếu `storage.objects.get`. Cần tài khoản được cấp quyền dataset/hoàn tất đăng ký Waymo trước khi chạy CP5.
+239 miss là tổng số GT không ghép confirmed track qua các frame, không phải số xe duy nhất. Detection bỏ sót 222 GT frames; chênh 17 so với misses tracking là so sánh tổng, không chứng minh từng GT bị bỏ sót trùng nhau. Coverage dùng detection TP làm mẫu số, không phải toàn bộ GT; do đó coverage cao không có nghĩa hệ thống bao phủ tất cả xe thật.
 
-Weights SFA3D đã tải từ nguồn upstream được đề cho phép: 50,984,463 bytes, Git blob SHA-1 `dfb87a00edb82e1dedc4eeb2639efba87a6ec031` khớp GitHub; detector nạp thành công 12,728,353 parameters. Lệnh compare thật đã thử và dừng tại `FileNotFoundError` của segment, trước khi tạo artifacts.
+Kiểm chứng: `128 passed`, không failed/xfailed; `compileall` và `git diff --check` thành công. Sáu artifacts do runner nguyên bản sinh, không chỉnh sửa tay. Validator chính thức xác nhận metrics của cả compare và hai mode riêng khớp logs: 199 frame/mode, tổng 398 records, không thiếu/trùng, đúng invariant, detection giống nhau giữa hai mode, RMSE khớp `sqrt(sum_sq_err/matches)`.
 
-Môi trường kiểm thử: Python 3.12.7, NumPy 1.26.4, SciPy 1.13.1, PyTorch 2.6.0 (CPU), OpenCV headless 4.11.0.86, protobuf 6.33.6. Venv local: `/Users/tridao/venvs/day23-pip`; `.env` và `paths.yaml` được giữ ngoài Git.
+Dữ liệu tải bằng Google Cloud CLI từ nguồn Waymo chính thức `gs://waymo_open_dataset_v_1_4_3/individual_files/training/segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord`, đặt thêm tiền tố `training_` theo cấu hình lab. File 990,170,672 bytes, MD5 base64 `delyDT2pX8tHwXthBhAD2g==` khớp metadata GCS; reader đọc được đủ 199 Frame. Bài làm sử dụng Waymo Open Dataset do Waymo LLC cung cấp theo [Waymo Dataset License Agreement for Non-Commercial Use](https://waymo.com/open/terms/); quyền truy cập và sử dụng chịu các điều khoản đó.
+
+Weights SFA3D lấy từ upstream được đề cho phép: 50,984,463 bytes, Git blob SHA-1 `dfb87a00edb82e1dedc4eeb2639efba87a6ec031` khớp GitHub; detector nạp thành công 12,728,353 parameters. Dataset và weights chỉ lưu local, không commit.
+
+Môi trường: Python 3.12.7, NumPy 1.26.4, SciPy 1.13.1, PyTorch 2.6.0 (CPU), OpenCV headless 4.11.0.86, protobuf 6.33.6. Venv local `/Users/tridao/venvs/day23-pip`; khi chạy đặt `OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 DAY23_HEADLESS=1`. `.env` và `paths.yaml` giữ ngoài Git.
 
 Chạy từ root repo:
 
@@ -54,7 +63,7 @@ File per-mode `metrics_lidar.json`, `metrics_fused.json`, `grade_run_lidar.log`,
    `workspace/association.py` dùng `d²=γᵀS⁻¹γ`, `γ=z-h(x)`, `S=HPHᵀ+R`. Gating loại cặp không phù hợp trước khi greedy lấy chi phí nhỏ nhất và xóa hàng/cột. Ngưỡng `chi2.ppf(gating_threshold,dim_meas)` có 3 bậc tự do cho LiDAR, 2 cho camera. Khác Euclidean, Mahalanobis chuẩn hóa theo độ bất định và tương quan: cùng residual có thể được chấp nhận khi covariance lớn nhưng bị loại khi covariance nhỏ. Kiểm tra FOV trước MHD tránh chiếu điểm sau camera, độ sâu ≤1e-6 hoặc tọa độ không hữu hạn. Cặp bị loại giữ chi phí `inf`; mỗi track/đo chỉ được ghép một lần.
 3. Pipeline là track-then-fuse hay fuse-then-track? Chỉ ra trên log `fusion-run-lab`.
 
-   Đây là track-then-fuse: một tracker trạng thái 6D dùng chung cho hai cảm biến. Trong `platform/fusion_lab/scripts/run_lab.py:run`, mỗi frame gọi `KF.predict` một lần cho các track cũ, sau đó association/update/quản lý LiDAR, rồi association/update camera nếu có FRONT labels. `workspace/association.py:associate_and_update` không predict thêm. Fuse-then-track sẽ kết hợp đo/detection trước khi tracking; lab không thực hiện bước đó. Waymo Frame được xem là một tick đồng bộ, cả hai đo dùng `t=frame*dt`; không mô phỏng queue cảm biến bất đồng bộ.
+   Đây là track-then-fuse: một tracker trạng thái 6D dùng chung cho hai cảm biến. Trong `platform/fusion_lab/scripts/run_lab.py:run`, mỗi frame gọi `KF.predict` một lần cho các track cũ, sau đó association/update/quản lý LiDAR, rồi association/update camera nếu có FRONT labels. `workspace/association.py:associate_and_update` không predict thêm. Fuse-then-track sẽ kết hợp đo/detection trước khi tracking; lab không thực hiện bước đó. Waymo Frame được xem là một tick đồng bộ, cả hai đo dùng `t=frame*dt`; không mô phỏng queue cảm biến bất đồng bộ. Trong `artifacts/grade_run_lidar.log` và `artifacts/grade_run_fused.log`, frame 4 đều có `confirmed=2`, `matches=2`; frame 100 đều có `confirmed=3`, `matches=3`, nhưng `sum_sq_err` khác nhau như phần tóm tắt. Log ghi kết quả sau các bước cập nhật; thứ tự predict/update được xác nhận từ code runner, không suy ra riêng từ schema log.
 4. Nếu camera lệch calibration, triệu chứng gì trên innovation/residual?
 
    Extrinsic sai làm sai `p_s=R_sv*p_v+t_sv`, từ đó lệch pixel dự đoán `h(x)` và tạo bias trong innovation `γ`. Squared Mahalanobis có thể tăng và vượt cổng χ², khiến mất camera association. Nếu bias vẫn lọt gate hoặc ghép sang đối tượng khác, EKF có thể kéo vị trí lệch và tăng RMSE 3D. Sai calibration cũng làm sai hướng Jacobian và kiểm tra FOV. Đây là phân tích từ mô hình; chưa chạy thí nghiệm perturbation nên không khẳng định mức ảnh hưởng định lượng.
@@ -79,15 +88,15 @@ Ghi rõ, kể cả khi không dùng ("Không dùng AI"). Xem [RULES.md](../RULES
 
 - Công cụ đã dùng (ChatGPT, Copilot, Claude, …): OpenAI Codex; sử dụng hướng dẫn Markdown do người dùng cung cấp.
 - Dùng cho phần nào (hàm, câu hỏi, debug): Triển khai toàn bộ TODO E–H, cài môi trường, xử lý tải dữ liệu/weights, chạy kiểm thử, giải thích sáu câu hỏi và soạn báo cáo. Người học cần tự đọc và giải thích được mã khi vấn đáp.
-- Cách bạn đã kiểm tra lại (pytest, chạy Waymo, đối chiếu công thức): Baseline 82 passed, 46 xfailed; sau E–H: 128 passed, không failed/xfailed. Đối chiếu F/Q, innovation, gain, pinhole và gate với đề; kiểm tra bổ sung covariance khi xoay hệ tọa độ, shape ma trận rỗng và đầu vào ndarray. Weights khớp Git blob nguồn và nạp được vào detector. Lệnh Waymo compare đã thử nhưng thiếu dataset nên chưa kiểm chứng pipeline đầy đủ, metrics, log invariants hoặc chất lượng tracking.
+- Cách bạn đã kiểm tra lại (pytest, chạy Waymo, đối chiếu công thức): Baseline 82 passed, 46 xfailed; sau E–H: 128 passed, không failed/xfailed. Đối chiếu F/Q, innovation, gain, pinhole và gate với đề; kiểm tra bổ sung covariance khi xoay hệ tọa độ, shape ma trận rỗng và đầu vào ndarray. Weights khớp Git blob nguồn và nạp được vào detector. Đã chạy Waymo compare thật đủ frame 0–198, seed 0 sau lần sửa E–H cuối; validator chính thức kiểm tra đủ sáu artifacts, 398 records và tính nhất quán metrics/log. Số liệu và nhận xét trong báo cáo lấy từ chính artifacts này.
 
 ## Checklist nộp
 
 - [x] **Part E–H** trong `workspace/` đã implement; `pytest student/tests -q` không còn `failed`/`xfailed`
 - [x] Part A–D: không bắt buộc sửa (hoặc ghi chú nếu bạn đã sửa)
-- [ ] Lần chạy chấm điểm: `--fusion compare --seed 0`, `frame_start: 0`, `frame_end: 198`
-- [ ] Đã commit `student/artifacts/metrics*.json` và `student/artifacts/grade_run*.log` (không sửa tay)
-- [ ] Đã điền đủ file này, gồm khai báo AI
+- [x] Lần chạy chấm điểm: `--fusion compare --seed 0`, `frame_start: 0`, `frame_end: 198`
+- [x] Đã commit `student/artifacts/metrics*.json` và `student/artifacts/grade_run*.log` (không sửa tay)
+- [x] Đã điền đủ file này, gồm khai báo AI
 - [x] Không commit dữ liệu Waymo, weights, `paths.yaml`, API key
 - [ ] `python tools/check_submission.py` báo `KẾT QUẢ: SẴN SÀNG NỘP`
 - [ ] Đã push và nộp link repo + commit hash trên LMS ([hướng dẫn nộp](../SUBMISSION.md))
