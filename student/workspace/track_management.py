@@ -8,6 +8,9 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
+from fusion_lab.workspace_support import get_tracking_params
+
 # vi: from fusion_lab.workspace_support import get_tracking_params
 # vi: import numpy as np
 
@@ -23,7 +26,18 @@ def init_track_state_from_meas(meas: Any) -> dict[str, Any]:
     """
     # vi: TODO Part H — đổi meas.z sang vehicle frame; x = [pos; 0 velocity];
     # vi: P block pos từ R xoay, vel từ sigma_p44/55/66; score = 1/window; state initialized.
-    raise NotImplementedError("TODO: implement init_track_state_from_meas")
+    if meas.sensor.name != "lidar":
+        raise ValueError("Track initialization requires a lidar measurement")
+    params = get_tracking_params()
+    transform = np.asarray(meas.sensor.sens_to_veh, dtype=float)
+    rotation = transform[:3, :3]
+    x = np.zeros((6, 1))
+    x[:3, 0] = rotation @ np.asarray(meas.z).reshape(3) + transform[:3, 3]
+    P = np.zeros((6, 6))
+    P[:3, :3] = rotation @ np.asarray(meas.R) @ rotation.T
+    P[3:, 3:] = np.diag([params.sigma_p44**2, params.sigma_p55**2, params.sigma_p66**2])
+    return {"x": np.asmatrix(x), "P": np.asmatrix(P),
+            "state": "initialized", "score": 1 / params.window}
 
 
 def update_track_score(track: dict[str, Any], associated: bool) -> dict[str, Any]:
@@ -42,7 +56,15 @@ def update_track_score(track: dict[str, Any], associated: bool) -> dict[str, Any
     # vi: TODO Part H — chỉ lidar: hit +1/window (tối đa 1), miss trong FOV -1/window.
     # vi: score > confirmed_threshold → confirmed; đã confirmed không hạ trạng thái.
     # vi: Camera không gọi hàm này; track chưa confirmed với hit → tentative.
-    raise NotImplementedError("TODO: implement update_track_score")
+    params = get_tracking_params()
+    step = 1 / params.window
+    track["score"] = min(1.0, track["score"] + step) if associated else track["score"] - step
+    if track["state"] != "confirmed":
+        if track["score"] > params.confirmed_threshold:
+            track["state"] = "confirmed"
+        elif associated:
+            track["state"] = "tentative"
+    return track
 
 
 def should_delete_track(track: dict[str, Any]) -> bool:
@@ -61,4 +83,8 @@ def should_delete_track(track: dict[str, Any]) -> bool:
     # vi: TODO Part H — Pxx hoặc Pyy > max_P: xóa bất kể score.
     # vi: confirmed: xóa khi score < delete_threshold; chưa confirmed: score <= 0.
     # vi: Các điều kiện là OR; camera không đánh giá/xóa track.
-    raise NotImplementedError("TODO: implement should_delete_track")
+    params = get_tracking_params()
+    P = track["P"]
+    return bool(P[0, 0] > params.max_P or P[1, 1] > params.max_P
+                or (track["state"] == "confirmed" and track["score"] < params.delete_threshold)
+                or (track["state"] != "confirmed" and track["score"] <= 0))
