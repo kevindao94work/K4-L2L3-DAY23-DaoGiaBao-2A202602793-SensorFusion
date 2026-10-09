@@ -6,7 +6,7 @@
 
 - Họ tên: Đào Gia Bảo
 - MSSV: 2A202602793
-- Email: Chưa được cung cấp.
+- Email: 26ai.baodg@vinuni.edu.vn
 - Link repo (fork): https://github.com/kevindao94work/K4-L2L3-DAY23-DaoGiaBao-2A202602793-SensorFusion
 - Commit hash nộp (`git rev-parse HEAD`): Xem hash cuối cùng cung cấp khi nộp LMS (được tạo sau commit báo cáo).
 
@@ -98,5 +98,5 @@ Ghi rõ, kể cả khi không dùng ("Không dùng AI"). Xem [RULES.md](../RULES
 - [x] Đã commit `student/artifacts/metrics*.json` và `student/artifacts/grade_run*.log` (không sửa tay)
 - [x] Đã điền đủ file này, gồm khai báo AI
 - [x] Không commit dữ liệu Waymo, weights, `paths.yaml`, API key
-- [ ] `python tools/check_submission.py` báo `KẾT QUẢ: SẴN SÀNG NỘP`
+- [x] `python tools/check_submission.py` báo `KẾT QUẢ: SẴN SÀNG NỘP`
 - [ ] Đã push và nộp link repo + commit hash trên LMS ([hướng dẫn nộp](../SUBMISSION.md))
